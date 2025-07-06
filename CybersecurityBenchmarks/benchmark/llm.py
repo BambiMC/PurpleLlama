@@ -1586,8 +1586,8 @@ class LOCALLLM(LLM):
     ):
         super().__init__(config)
 
-        login(token=self.api_key)
-        # login(token=os.environ["HF_TOKEN"])
+        # login(token=self.api_key)
+        login(token=os.environ["HF_TOKEN"])
 
         bnb_config = BitsAndBytesConfig(
                     load_in_4bit=True,
