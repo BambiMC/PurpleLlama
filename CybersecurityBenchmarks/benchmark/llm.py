@@ -26,6 +26,10 @@ from typing_extensions import override
 from .benchmark_utils import audio_to_b64, get_mime_type, image_to_b64
 from .cache_handler import CacheHandler
 
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import torch
+from huggingface_hub import login
+
 
 NUM_LLM_RETRIES = 100
 MAX_RETRY_TIMEOUT = 600
@@ -61,6 +65,7 @@ class LLM(ABC):
     def __init__(
         self,
         config: LLMConfig,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ) -> None:
         self.model: str = config.model
         self.api_key: str | None = config.api_key
@@ -523,6 +528,8 @@ def create(
         return ANTHROPIC(config)
     if provider == "GOOGLEGENAI":
         return GOOGLEGENAI(config)
+    if provider == "LOCALLLM":
+        return LOCALLLM(config)
 
     raise ValueError(f"Unknown provider: {provider}")
 
@@ -557,19 +564,15 @@ class OPENAI(LLM):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            max_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model not in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            max_completion_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            temperature=(
-                temperature if (self.model not in self._reasoning_models) else NOT_GIVEN
-            ),
+            max_tokens=DEFAULT_MAX_TOKENS
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
+            max_completion_tokens=DEFAULT_MAX_TOKENS
+            if (self.model in self._reasoning_models)
+            else NOT_GIVEN,
+            temperature=temperature
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
             top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
             response_format=(
                 {"type": "json_object"}
@@ -603,19 +606,15 @@ class OPENAI(LLM):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            max_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model not in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            max_completion_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            temperature=(
-                temperature if (self.model not in self._reasoning_models) else NOT_GIVEN
-            ),
+            max_tokens=DEFAULT_MAX_TOKENS
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
+            max_completion_tokens=DEFAULT_MAX_TOKENS
+            if (self.model in self._reasoning_models)
+            else NOT_GIVEN,
+            temperature=temperature
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
             top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
             response_format=(
                 {"type": "json_object"}
@@ -651,19 +650,15 @@ class OPENAI(LLM):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=message_list,
-            max_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model not in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            max_completion_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            temperature=(
-                temperature if (self.model not in self._reasoning_models) else NOT_GIVEN
-            ),
+            max_tokens=DEFAULT_MAX_TOKENS
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
+            max_completion_tokens=DEFAULT_MAX_TOKENS
+            if (self.model in self._reasoning_models)
+            else NOT_GIVEN,
+            temperature=temperature
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
             top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
             response_format=(
                 {"type": "json_object"}
@@ -691,19 +686,15 @@ class OPENAI(LLM):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model not in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            max_completion_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            temperature=(
-                temperature if (self.model not in self._reasoning_models) else NOT_GIVEN
-            ),
+            max_tokens=DEFAULT_MAX_TOKENS
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
+            max_completion_tokens=DEFAULT_MAX_TOKENS
+            if (self.model in self._reasoning_models)
+            else NOT_GIVEN,
+            temperature=temperature
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
             top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
             response_format=(
                 {"type": "json_object"}
@@ -749,19 +740,15 @@ class OPENAI(LLM):
                     ],
                 },
             ],
-            max_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model not in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            max_completion_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            temperature=(
-                temperature if (self.model not in self._reasoning_models) else NOT_GIVEN
-            ),
+            max_tokens=DEFAULT_MAX_TOKENS
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
+            max_completion_tokens=DEFAULT_MAX_TOKENS
+            if (self.model in self._reasoning_models)
+            else NOT_GIVEN,
+            temperature=temperature
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
             top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
             response_format=(
                 {"type": "json_object"}
@@ -822,19 +809,15 @@ class OPENAI(LLM):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            max_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model not in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            max_completion_tokens=(
-                DEFAULT_MAX_TOKENS
-                if (self.model in self._reasoning_models)
-                else NOT_GIVEN
-            ),
-            temperature=(
-                temperature if (self.model not in self._reasoning_models) else NOT_GIVEN
-            ),
+            max_tokens=DEFAULT_MAX_TOKENS
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
+            max_completion_tokens=DEFAULT_MAX_TOKENS
+            if (self.model in self._reasoning_models)
+            else NOT_GIVEN,
+            temperature=temperature
+            if (self.model not in self._reasoning_models)
+            else NOT_GIVEN,
             top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
         )
         return response.choices[0].message.content
@@ -1588,4 +1571,138 @@ class GOOGLEGENAI(LLM):
             "gemini-1.5-pro",
             "gemini-1.5-flash",
             "gemini-1.5-flash-8b",
+        ]
+class LOCALLLM(LLM):
+    """Accessing a Local HuggingFace Model"""
+
+# microsoft/DialoGPT-small
+
+# login(token="your_huggingface_token_here")
+
+    def __init__(
+        self,
+        config: LLMConfig,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    ):
+        super().__init__(config)
+
+        login(token=self.api_key)
+
+        bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_quant_type="nf4"
+                )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model)
+        self.hf_model = AutoModelForCausalLM.from_pretrained(
+        self.model,
+            device_map="auto",  # Enables CPU/GPU offloading if needed
+            quantization_config=bnb_config
+        )
+
+        # Set the tokenizer's pad token to the end of sentence token (fix: Setting pad_token_id to eos_token_id:50256 for open-end generation.)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.hf_model.config.pad_token_id = self.tokenizer.eos_token_id
+
+
+        self.device = device  # Can still use this to place inputs
+
+
+    @override
+    def query(
+        self,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ) -> str:
+        print("query")
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        outputs = self.hf_model.generate(
+            **inputs,
+            max_new_tokens=512,
+            do_sample=True,
+            temperature=temperature,
+            top_p=top_p,
+            # pad_token_id=self.tokenizer.pad_token_id
+        )
+        full_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        response = full_output[len(prompt):].lstrip()
+
+        return response
+
+    @override
+    def query_with_system_prompt(
+        self,
+        system_prompt: str,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ) -> str:
+        print("query with system prompt")
+        #TODO: Implement version to do this for other models / model families 
+        full_prompt = f"<|system|>\n{system_prompt}\n<|user|>\n{prompt}\n<|assistant|>\n"
+        return self.query(full_prompt, temperature=temperature, top_p=top_p)
+
+    @override
+    def query_with_system_prompt_and_image(
+        self,
+        system_prompt: str,
+        prompt: str,
+        image_path: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ) -> str:
+        raise NotImplementedError("Image input not supported for LOCALLLM.")
+
+    @override
+    def query_multimodal(
+        self,
+        system_prompt: Optional[str] = None,
+        text_prompt: Optional[str] = None,
+        image_paths: Optional[List[str]] = None,
+        audio_paths: Optional[List[str]] = None,
+        max_tokens: int = 512,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ) -> str:
+        raise NotImplementedError("Multimodal input not supported for LOCALLLM.")
+
+    @override
+    def chat(
+        self,
+        prompt_with_history: List[str],
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ) -> str:
+        print("chat")
+        full_prompt = "\n".join(prompt_with_history)
+        return self.query(full_prompt, temperature=temperature, top_p=top_p)
+
+    @override
+    def chat_with_system_prompt(
+        self,
+        system_prompt: str,
+        prompt_with_history: List[str],
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ) -> str:
+        print("chat with system prompt")
+        history = "\n".join(prompt_with_history)
+        full_prompt = f"{system_prompt}\n{history}"
+        return self.query(full_prompt, temperature=temperature, top_p=top_p)
+
+    @override
+    def valid_models(self) -> list[str]:
+        return [
+            "mistral-7b",
+            "llama-3-8b",
+            "phi-2",
+            "your-custom-model-name",
         ]
