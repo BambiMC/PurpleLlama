@@ -1619,7 +1619,8 @@ class LOCALLLM(LLM):
         temperature: float = 0.7,
         top_p: float = 0.9,
     ) -> str:
-        print("query")
+        #print("query") 
+        #TODO ?
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         outputs = self.hf_model.generate(
             **inputs,
@@ -1643,7 +1644,7 @@ class LOCALLLM(LLM):
         temperature: float = 0.7,
         top_p: float = 0.9,
     ) -> str:
-        print("query with system prompt")
+        #print("query with system prompt")
         #TODO: Implement version to do this for other models / model families 
         full_prompt = f"<|system|>\n{system_prompt}\n<|user|>\n{prompt}\n<|assistant|>\n"
         return self.query(full_prompt, temperature=temperature, top_p=top_p)
