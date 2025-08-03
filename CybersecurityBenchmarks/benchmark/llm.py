@@ -1575,10 +1575,6 @@ class GOOGLEGENAI(LLM):
 class LOCALLLM(LLM):
     """Accessing a Local HuggingFace Model"""
 
-# microsoft/DialoGPT-small
-
-# login(token="your_huggingface_token_here")
-
     def __init__(
         self,
         config: LLMConfig,
@@ -1586,7 +1582,8 @@ class LOCALLLM(LLM):
     ):
         super().__init__(config)
 
-        # login(token=self.api_key)
+        print(f"Loading local model {self.model} on device {device}")
+
         login(token=os.environ["HF_TOKEN"])
 
         bnb_config = BitsAndBytesConfig(
