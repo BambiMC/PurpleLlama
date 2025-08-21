@@ -107,6 +107,8 @@ class MitreBenchmark(Benchmark):
         j_llm: LLM
         e_llm: LLM
 
+        print("\n\n\n\n\n\nRUN IN MITRE BENCHMARK\n\n\n\n\n\n")
+
         if self.judge_llm is None:
             raise ValueError("Please provide judge llm.")
         else:

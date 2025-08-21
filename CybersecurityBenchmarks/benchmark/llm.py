@@ -31,6 +31,7 @@ import torch
 from huggingface_hub import login
 
 
+
 NUM_LLM_RETRIES = 100
 MAX_RETRY_TIMEOUT = 600
 
@@ -1572,65 +1573,163 @@ class GOOGLEGENAI(LLM):
             "gemini-1.5-flash",
             "gemini-1.5-flash-8b",
         ]
-class LOCALLLM(LLM):
-    """Accessing a Local HuggingFace Model"""
+import os
+import time
+from typing import Optional, Sequence, Union
+
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+# from huggingface_hub import login  # not strictly needed if HF_TOKEN is already active
+
+class LOCALLLM:
+    """Access a local HuggingFace causal LM."""
 
     def __init__(
         self,
-        config: LLMConfig,
+        config_or_model: Union[str, "LLMConfig"],
+        load_in_4bit: bool = True,
+        multi_gpu: bool = True,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ):
-        super().__init__(config)
+        print("Initializing - LOCALLLM...\n\n\n")
+        # Accept either a config object with `.model` or a plain repo string
+        self.model_name = getattr(config_or_model, "model", config_or_model)
+        self.load_in_4bit = load_in_4bit
+        self.multi_gpu = multi_gpu
+        self.device = device
 
-        print(f"Loading local model {self.model} on device {device}")
+        print(f"Loading local model {self.model_name} on device {device}")
 
-        login(token=os.environ["HF_TOKEN"])
+        # If HF_TOKEN is already exported, transformers will pick it up automatically.
+        # If you *must* force a login, uncomment the following line:
+        # if "HF_TOKEN" in os.environ: login(token=os.environ["HF_TOKEN"])
 
-        bnb_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_use_double_quant=True,
-                    bnb_4bit_compute_dtype=torch.float16,
-                    bnb_4bit_quant_type="nf4"
-                )
+        self.tokenizer = None
+        self.model = None
+        print(f"DefaultModel: '{self.model_name}', loading with 4bit={self.load_in_4bit}, multi_gpu={self.multi_gpu}")
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.hf_model = AutoModelForCausalLM.from_pretrained(
-        self.model,
-            device_map="auto",  # Enables CPU/GPU offloading if needed
-            quantization_config=bnb_config
+        bnb_config = None
+        torch_dtype = torch.bfloat16
+        if self.load_in_4bit:
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch_dtype,
+            )
+
+        # Tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=True)
+        self.tokenizer.padding_side = "left"
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+
+        # Model
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.model_name,
+            quantization_config=bnb_config,
+            device_map="auto" if self.multi_gpu else None,
+            torch_dtype=torch_dtype,
         )
 
-        # Set the tokenizer's pad token to the end of sentence token (fix: Setting pad_token_id to eos_token_id:50256 for open-end generation.)
-        self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.hf_model.config.pad_token_id = self.tokenizer.eos_token_id
 
-
-        self.device = device  # Can still use this to place inputs
-
-
-    @override
     def query(
+        self,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,  # accepted for API compatibility
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        max_new_tokens: int = 512,
+    ) -> str:
+        print("Querying - LOCALLLM...\n\n\n")
+        
+        if self.model is None or self.tokenizer is None:
+            raise RuntimeError("Model not loaded. Call load_model() first.")
+
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=True,
+            temperature=temperature,
+            top_p=top_p,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+        )
+        full = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return full[len(prompt):].lstrip()
+
+    def query_with_retries(
         self,
         prompt: str,
         guided_decode_json_schema: Optional[str] = None,
         temperature: float = 0.7,
         top_p: float = 0.9,
+        max_new_tokens: int = 512,
+        max_retries: int = 3,
+        backoff: float = 1.5,
     ) -> str:
-        #print("query") 
-        #TODO ?
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-        outputs = self.hf_model.generate(
-            **inputs,
-            max_new_tokens=512,
-            do_sample=True,
-            temperature=temperature,
-            top_p=top_p,
-            # pad_token_id=self.tokenizer.pad_token_id
-        )
-        full_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = full_output[len(prompt):].lstrip()
+        print("Querying With Retries - LOCALLLM...\n\n\n")
 
-        return response
+        """Thin retry wrapper expected by the benchmark harness."""
+        attempt = 0
+        last_err = None
+        cur_max_new = max_new_tokens
+
+        while attempt <= max_retries:
+            try:
+                return self.query(
+                    prompt=prompt,
+                    guided_decode_json_schema=guided_decode_json_schema,
+                    temperature=temperature,
+                    top_p=top_p,
+                    max_new_tokens=cur_max_new,
+                )
+            except torch.cuda.OutOfMemoryError as e:
+                last_err = e
+                # Try to recover from OOM by freeing cache and reducing tokens
+                try:
+                    torch.cuda.empty_cache()
+                except Exception:
+                    pass
+                cur_max_new = max(64, int(cur_max_new * 0.7))
+            except Exception as e:
+                last_err = e
+
+            # Backoff before retrying
+            attempt += 1
+            if attempt <= max_retries:
+                time.sleep(backoff ** attempt)
+
+        raise RuntimeError(f"query_with_retries failed after {max_retries} retries: {last_err}") from last_err
+
+    def generate_batch_responses(self, prompts: Sequence[str], max_new_tokens: int = 256):
+        return self._generate_batch_responses_generic(prompts, max_new_tokens)
+
+    def _generate_batch_responses_generic(self, prompts: Sequence[str], max_new_tokens: int):
+        if self.model is None or self.tokenizer is None:
+            raise RuntimeError("Model not loaded. Call load_model() first.")
+
+        print(f"DefaultModel ({self.model_name}) generating batch responses...")
+
+        inputs = self.tokenizer(
+            list(prompts),
+            return_tensors="pt",
+            padding=True,
+            truncation=True
+        ).to(self.model.device)
+
+        outputs = self.model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            max_new_tokens=max_new_tokens,
+            do_sample=True,
+            temperature=1.0,
+            top_p=0.95,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+        )
+        return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
     @override
     def query_with_system_prompt(
@@ -1642,6 +1741,7 @@ class LOCALLLM(LLM):
         top_p: float = 0.9,
     ) -> str:
         #print("query with system prompt")
+        raise NotImplementedError("Not implemented yet for LOCALLLM.")
         #TODO: Implement version to do this for other models / model families 
         full_prompt = f"<|system|>\n{system_prompt}\n<|user|>\n{prompt}\n<|assistant|>\n"
         return self.query(full_prompt, temperature=temperature, top_p=top_p)
@@ -1680,6 +1780,7 @@ class LOCALLLM(LLM):
         top_p: float = 0.9,
     ) -> str:
         print("chat")
+        raise NotImplementedError("Not implemented yet for LOCALLLM.")
         full_prompt = "\n".join(prompt_with_history)
         return self.query(full_prompt, temperature=temperature, top_p=top_p)
 
@@ -1693,6 +1794,7 @@ class LOCALLLM(LLM):
         top_p: float = 0.9,
     ) -> str:
         print("chat with system prompt")
+        raise NotImplementedError("Not implemented yet for LOCALLLM.")
         history = "\n".join(prompt_with_history)
         full_prompt = f"{system_prompt}\n{history}"
         return self.query(full_prompt, temperature=temperature, top_p=top_p)
