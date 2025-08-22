@@ -74,16 +74,8 @@ class MitreBenchmark(Benchmark):
         return ["mitre"]
 
     def query_llm_to_generate_responses(
-        self, prompt_path: Path, run_llm_in_parallel: int = 1
-    ) -> None:
-        """
-        This method queries the language model to generate responses. It takes as input
-        the path to the prompts and a boolean indicating whether to run the language model
-        in parallel. It extends the response results for each language model under test.
-        Args:
-            prompt_path (Path): The path to the file containing the prompts.
-            run_llm_in_parallel (bool, optional): A flag indicating whether to run the language model in parallel. Defaults to False.
-        """
+    self, prompt_path: Path, run_llm_in_parallel: int = 1
+) -> None:
         response_result = []
         for llm in self.llms_under_test:
             response_result.extend(
@@ -96,7 +88,19 @@ class MitreBenchmark(Benchmark):
                 )
             )
 
-        self.response_path.write_text(json.dumps(response_result, indent=4))
+        # 🩹 ensure JSON-serializability
+        def make_serializable(obj):
+            if isinstance(obj, (str, int, float, bool)) or obj is None:
+                return obj
+            if isinstance(obj, dict):
+                return {k: make_serializable(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [make_serializable(v) for v in obj]
+            # fallback: string representation
+            return str(obj)
+
+        safe_response_result = make_serializable(response_result)
+        self.response_path.write_text(json.dumps(safe_response_result, indent=4))
 
     async def run(
         self,
