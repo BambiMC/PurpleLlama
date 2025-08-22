@@ -1657,6 +1657,7 @@ class LOCALLLM:
             eos_token_id=self.tokenizer.eos_token_id,
         )
         full = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        print(f"LOCALLLM - Querying...\nPrompt: {prompt}\nResponse: {full[len(prompt):].lstrip()}\n")
         return full[len(prompt):].lstrip()
 
     def query_with_retries(
