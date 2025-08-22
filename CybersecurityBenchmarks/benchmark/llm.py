@@ -1589,7 +1589,7 @@ class LOCALLLM:
         config_or_model: Union[str, "LLMConfig"],
         load_in_4bit: bool = True,
         multi_gpu: bool = True,
-        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        device: str = "cuda",
     ):
         print("Initializing - LOCALLLM...\n\n\n")
         # Accept either a config object with `.model` or a plain repo string
