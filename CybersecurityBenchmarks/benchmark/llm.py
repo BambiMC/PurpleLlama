@@ -1591,7 +1591,7 @@ class LOCALLLM:
         multi_gpu: bool = True,
         device: str = "cuda",
     ):
-        print("\nInitializing - LOCALLLM...\n\n\n")
+        print("\nInitializing - LOCALLLM...\n")
         # Accept either a config object with `.model` or a plain repo string
         self.model_name = model_name
         self.load_in_4bit = load_in_4bit
@@ -1641,7 +1641,7 @@ class LOCALLLM:
         top_p: float = 0.9,
         max_new_tokens: int = 512,
     ) -> str:
-        print("\nQuerying - LOCALLLM...\n\n\n")
+        print("\nQuerying - LOCALLLM...\n")
         
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
@@ -1657,7 +1657,7 @@ class LOCALLLM:
             eos_token_id=self.tokenizer.eos_token_id,
         )
         full = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        print(f"\nLOCALLLM - Querying...\nPrompt: {prompt}\nResponse: {full[len(prompt):].lstrip()}\n")
+        print(f"\nLOCALLLM - Querying...\nPrompt: {prompt}\n\n\n\n\n\nResponse: {full[len(prompt):].lstrip()}\n")
         return full[len(prompt):].lstrip()
 
     def query_with_retries(
@@ -1670,7 +1670,7 @@ class LOCALLLM:
         max_retries: int = 3,
         backoff: float = 1.5,
     ) -> str:
-        print("\nQuerying With Retries - LOCALLLM...\n\n\n")
+        print("\nQuerying With Retries - LOCALLLM...")
 
         """Thin retry wrapper expected by the benchmark harness."""
 
