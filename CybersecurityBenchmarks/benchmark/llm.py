@@ -1673,37 +1673,14 @@ class LOCALLLM:
         print("\nQuerying With Retries - LOCALLLM...\n\n\n")
 
         """Thin retry wrapper expected by the benchmark harness."""
-        attempt = 0
-        last_err = None
-        cur_max_new = max_new_tokens
 
-        while attempt <= max_retries:
-            try:
-                return self.query(
-                    prompt=prompt,
-                    guided_decode_json_schema=guided_decode_json_schema,
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_new_tokens=cur_max_new,
-                )
-            except torch.cuda.OutOfMemoryError as e:
-                print(f"\n\n\nOutOfMemoryError on attempt {attempt+1}/{max_retries}: {e}\n\n\n")
-                last_err = e
-                # Try to recover from OOM by freeing cache and reducing tokens
-                try:
-                    torch.cuda.empty_cache()
-                except Exception:
-                    pass
-                cur_max_new = max(64, int(cur_max_new * 0.7))
-            except Exception as e:
-                last_err = e
-
-            # Backoff before retrying
-            attempt += 1
-            if attempt <= max_retries:
-                time.sleep(backoff ** attempt)
-
-        raise RuntimeError(f"query_with_retries failed after {max_retries} retries: {last_err}") from last_err
+        return self.query(
+            prompt=prompt,
+            guided_decode_json_schema=guided_decode_json_schema,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+        )
 
     def generate_batch_responses(self, prompts: Sequence[str], max_new_tokens: int = 256):
         return self._generate_batch_responses_generic(prompts, max_new_tokens)
