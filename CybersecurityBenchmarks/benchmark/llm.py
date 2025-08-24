@@ -530,7 +530,7 @@ def create(
     if provider == "GOOGLEGENAI":
         return GOOGLEGENAI(config)
     if provider == "LOCALLLM":
-        return LOCALLLM(config)
+        return LOCALLLM(name, True, True, "cuda")
 
     raise ValueError(f"Unknown provider: {provider}")
 
@@ -1586,14 +1586,14 @@ class LOCALLLM:
 
     def __init__(
         self,
-        config_or_model: Union[str, "LLMConfig"],
+        model_name: str,
         load_in_4bit: bool = True,
         multi_gpu: bool = True,
         device: str = "cuda",
     ):
         print("Initializing - LOCALLLM...\n\n\n")
         # Accept either a config object with `.model` or a plain repo string
-        self.model_name = getattr(config_or_model, "model", config_or_model)
+        self.model_name = model_name
         self.load_in_4bit = load_in_4bit
         self.multi_gpu = multi_gpu
         self.device = device
