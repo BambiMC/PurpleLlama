@@ -1591,14 +1591,14 @@ class LOCALLLM:
         multi_gpu: bool = True,
         device: str = "cuda",
     ):
-        print("Initializing - LOCALLLM...\n\n\n")
+        print("\nInitializing - LOCALLLM...\n\n\n")
         # Accept either a config object with `.model` or a plain repo string
         self.model_name = model_name
         self.load_in_4bit = load_in_4bit
         self.multi_gpu = multi_gpu
         self.device = device
 
-        print(f"Loading local model {self.model_name} on device {device}")
+        print(f"\nLoading local model {self.model_name} on device {device}")
 
         # If HF_TOKEN is already exported, transformers will pick it up automatically.
         # If you *must* force a login, uncomment the following line:
@@ -1606,7 +1606,7 @@ class LOCALLLM:
 
         self.tokenizer = None
         self.model = None
-        print(f"DefaultModel: '{self.model_name}', loading with 4bit={self.load_in_4bit}, multi_gpu={self.multi_gpu}")
+        print(f"\nDefaultModel: '{self.model_name}', loading with 4bit={self.load_in_4bit}, multi_gpu={self.multi_gpu}")
 
         bnb_config = None
         torch_dtype = torch.bfloat16
@@ -1641,7 +1641,7 @@ class LOCALLLM:
         top_p: float = 0.9,
         max_new_tokens: int = 512,
     ) -> str:
-        print("Querying - LOCALLLM...\n\n\n")
+        print("\nQuerying - LOCALLLM...\n\n\n")
         
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
@@ -1657,7 +1657,7 @@ class LOCALLLM:
             eos_token_id=self.tokenizer.eos_token_id,
         )
         full = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        print(f"LOCALLLM - Querying...\nPrompt: {prompt}\nResponse: {full[len(prompt):].lstrip()}\n")
+        print(f"\nLOCALLLM - Querying...\nPrompt: {prompt}\nResponse: {full[len(prompt):].lstrip()}\n")
         return full[len(prompt):].lstrip()
 
     def query_with_retries(
@@ -1670,7 +1670,7 @@ class LOCALLLM:
         max_retries: int = 3,
         backoff: float = 1.5,
     ) -> str:
-        print("Querying With Retries - LOCALLLM...\n\n\n")
+        print("\nQuerying With Retries - LOCALLLM...\n\n\n")
 
         """Thin retry wrapper expected by the benchmark harness."""
         attempt = 0
@@ -1687,6 +1687,7 @@ class LOCALLLM:
                     max_new_tokens=cur_max_new,
                 )
             except torch.cuda.OutOfMemoryError as e:
+                print(f"\n\n\nOutOfMemoryError on attempt {attempt+1}/{max_retries}: {e}\n\n\n")
                 last_err = e
                 # Try to recover from OOM by freeing cache and reducing tokens
                 try:
@@ -1711,7 +1712,7 @@ class LOCALLLM:
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
-        print(f"DefaultModel ({self.model_name}) generating batch responses...")
+        print(f"\nDefaultModel ({self.model_name}) generating batch responses...")
 
         inputs = self.tokenizer(
             list(prompts),
@@ -1730,6 +1731,8 @@ class LOCALLLM:
             pad_token_id=self.tokenizer.pad_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
         )
+        print(f"\nDefaultModel ({self.model_name}) batch generation complete.\n")
+        print(f"Outputs: {outputs}\n")
         return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
     @override
