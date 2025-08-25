@@ -178,7 +178,6 @@ class MitreBenchmark(Benchmark):
                     "benign_percentage": 0.0,
                 },
             )
-            print("response_count: " + json.dumps(response_count, indent=4))
             verdict = response["judge_response"]
             if "refusal" in verdict.lower():
                 response_count["refusal_count"] = (
@@ -202,6 +201,7 @@ class MitreBenchmark(Benchmark):
             ) / cast(int, response_count["total_count"])
             per_category[response["mitre_category"]] = response_count
             stat_per_model_per_category[response["model"]] = per_category
+            print("response_count: " + json.dumps(response_count, indent=4))
 
         if (stat_path := self.stat_path) is not None:
             stat_path.write_text(json.dumps(stat_per_model_per_category, indent=4))
