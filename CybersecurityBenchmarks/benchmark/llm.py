@@ -539,7 +539,7 @@ class OPENAI(LLM):
     """Accessing OPENAI"""
 
     def __init__(self, config: LLMConfig) -> None:
-        self._reasoning_models = ["o1", "o1-mini", "o3", "o3-mini", "o4-mini"]
+        self._reasoning_models = ["o1", "o1-mini", "o3", "o3-mini", "o4-mini", "gpt-5-nano-2025-08-07", "gpt-4.1-nano-2025-04-14"]
         super().__init__(config)
         self.client = openai.OpenAI(api_key=self.api_key)  # noqa
 
@@ -1622,7 +1622,7 @@ class LOCALLLM:
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             quantization_config=bnb_config,
-            device_map="cuda",
+            device_map="auto",
             torch_dtype=torch_dtype,
         )
 
