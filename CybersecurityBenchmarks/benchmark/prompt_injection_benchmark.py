@@ -116,6 +116,7 @@ class PromptInjectionBenchmark(Benchmark):
         """
         Processes the results of the benchmark.
         """
+        print("0000000000000000000000000")
         if self.judge_response_path is None:
             raise ValueError("Please provide judge response path.")
         judge_response_result = json.loads(prompt_path.read_text())
