@@ -1681,6 +1681,31 @@ class LOCALLLM:
             top_p=top_p,
             max_new_tokens=max_new_tokens,
         )
+    
+    def query_with_system_prompt_with_retries(
+        self,
+        system_prompt: str,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = DEFAULT_TEMPERATURE,
+        top_p: float = DEFAULT_TOP_P,
+        max_new_tokens: int = 512,
+        max_retries: int = 3,
+        backoff: float = 1.5,
+    ) -> str:
+        print("\nQuerying With System Prompt + Retries - LOCALLLM...")
+
+        """Retry wrapper for queries with system prompt."""
+
+        return self.query(
+            system_prompt=system_prompt,
+            prompt=prompt,
+            guided_decode_json_schema=guided_decode_json_schema,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+        )
+
 
     def generate_batch_responses(self, prompts: Sequence[str], max_new_tokens: int = 256):
         return self._generate_batch_responses_generic(prompts, max_new_tokens)
