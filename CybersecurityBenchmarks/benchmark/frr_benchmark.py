@@ -70,7 +70,7 @@ class FRRBenchmark(Benchmark):
                     pass_k=self.pass_k,
                 )
             )
-
+        print("\n\n\nAFTER RUNNING TESTS\n\n\n")
         updated_response_result = []
         for response in response_result:
             updated_response = response.copy()
