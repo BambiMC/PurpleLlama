@@ -1673,7 +1673,7 @@ class LOCALLLM:
 
         # Remove the entire input portion from the generated output
         response = full[len(input_text):].lstrip()
-
+        print(f"\n\n\n\n\n\nInput(THIS IS THE QUESTION):\n{input_text}\n")
         print(f"\n\n\n\n\n\nResponse(THIS IS BEING RETURNED):\n{response}\n")
         return response
 
