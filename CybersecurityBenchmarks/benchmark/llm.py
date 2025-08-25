@@ -1591,22 +1591,16 @@ class LOCALLLM:
         multi_gpu: bool = True,
         device: str = "cuda",
     ):
-        print("\nInitializing - LOCALLLM...\n")
-        # Accept either a config object with `.model` or a plain repo string
         self.model_name = model_name
         self.load_in_4bit = load_in_4bit
         self.multi_gpu = multi_gpu
         self.device = device
 
-        print(f"\nLoading local model {self.model_name} on device {device}")
-
-        # If HF_TOKEN is already exported, transformers will pick it up automatically.
-        # If you *must* force a login, uncomment the following line:
-        # if "HF_TOKEN" in os.environ: login(token=os.environ["HF_TOKEN"])
+        print(f"\nLOCALLLM: Loading local model {self.model_name} on device {device}")
 
         self.tokenizer = None
         self.model = None
-        print(f"\nDefaultModel: '{self.model_name}', loading with 4bit={self.load_in_4bit}, multi_gpu={self.multi_gpu}")
+        print(f"\nLOCALLLM: '{self.model_name}', loading with 4bit={self.load_in_4bit}, multi_gpu={self.multi_gpu}")
 
         bnb_config = None
         torch_dtype = torch.bfloat16
@@ -1635,7 +1629,7 @@ class LOCALLLM:
 
     def query(
         self,
-        prompt: str,
+        prompt: Union[str, list[str]],
         guided_decode_json_schema: Optional[str] = None,  # accepted for API compatibility
         temperature: float = 0.7,
         top_p: float = 0.9,
@@ -1646,7 +1640,20 @@ class LOCALLLM:
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        if isinstance(prompt, str):
+            prompt = [
+                {"role": "user", "content": prompt},
+            ]
+
+        # inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        inputs = self.tokenizer.apply_chat_template(
+            prompt,
+            tokenize=True,
+            add_generation_prompt=True,
+            return_tensors="pt",
+            return_dict=True,
+        )
+
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=max_new_tokens,
@@ -1697,9 +1704,13 @@ class LOCALLLM:
 
         """Retry wrapper for queries with system prompt."""
 
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+
         return self.query(
-            system_prompt=system_prompt,
-            prompt=prompt,
+            prompt=messages,
             guided_decode_json_schema=guided_decode_json_schema,
             temperature=temperature,
             top_p=top_p,
@@ -1746,11 +1757,20 @@ class LOCALLLM:
         temperature: float = 0.7,
         top_p: float = 0.9,
     ) -> str:
-        #print("query with system prompt")
-        raise NotImplementedError("Not implemented yet for LOCALLLM.")
-        #TODO: Implement version to do this for other models / model families 
-        full_prompt = f"<|system|>\n{system_prompt}\n<|user|>\n{prompt}\n<|assistant|>\n"
-        return self.query(full_prompt, temperature=temperature, top_p=top_p)
+        print("\nQuerying With System Prompt - LOCALLLM...")
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+
+        return self.query(
+            prompt=messages,
+            guided_decode_json_schema=guided_decode_json_schema,
+            temperature=temperature,
+            top_p=top_p,
+        )
+
 
     @override
     def query_with_system_prompt_and_image(
