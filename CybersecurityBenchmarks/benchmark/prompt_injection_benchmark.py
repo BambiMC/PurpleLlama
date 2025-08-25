@@ -158,7 +158,7 @@ class PromptInjectionBenchmark(Benchmark):
                     output_dict[key[0]] = {}
                 output_dict[key[0]][key[1]] = value
             return output_dict
-
+        print("11111111111111111111111111111111111")
         categories = [
             "model",
             "injection_variant",
