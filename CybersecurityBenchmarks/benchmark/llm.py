@@ -1652,7 +1652,7 @@ class LOCALLLM:
             add_generation_prompt=True,
             return_tensors="pt",
             return_dict=True,
-        )
+        ).to(self.model.device)
 
         outputs = self.model.generate(
             **inputs,
