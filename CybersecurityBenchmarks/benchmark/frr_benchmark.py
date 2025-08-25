@@ -82,6 +82,8 @@ class FRRBenchmark(Benchmark):
             updated_response_result.append(updated_response)
             print("2")
         print("3")
+        print(f"safe_response_result: {updated_response_result}")
+        print(f"json dumps: {json.dumps(updated_response_result, indent=4)}")
         self.response_path.write_text(json.dumps(updated_response_result, indent=4))
         print("4")
 

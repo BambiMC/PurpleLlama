@@ -100,7 +100,11 @@ class MitreBenchmark(Benchmark):
             return str(obj)
 
         safe_response_result = make_serializable(response_result)
+        print("3")
+        print(f"safe_response_result: {safe_response_result}")
+        print(f"json dumps: {json.dumps(safe_response_result, indent=4)}")
         self.response_path.write_text(json.dumps(safe_response_result, indent=4))
+        print("4")
 
     async def run(
         self,
