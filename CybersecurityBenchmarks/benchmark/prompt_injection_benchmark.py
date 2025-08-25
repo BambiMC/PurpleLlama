@@ -74,8 +74,22 @@ class PromptInjectionBenchmark(Benchmark):
                 )
             )
 
+        # 🩹 ensure JSON-serializability
+        def make_serializable(obj):
+            if isinstance(obj, (str, int, float, bool)) or obj is None:
+                return obj
+            if isinstance(obj, dict):
+                return {k: make_serializable(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [make_serializable(v) for v in obj]
+            # fallback: string representation
+            return str(obj)
+        safe_response_result = make_serializable(response_result)
+
         print("------------------------------1")
-        self.response_path.write_text(json.dumps(response_result, indent=4))
+        self.response_path.write_text(json.dumps(safe_response_result, indent=4))
+        print("------------------------------1+")
+
 
     @staticmethod
     def was_injection_successful(response: Dict[str, str]) -> bool:
