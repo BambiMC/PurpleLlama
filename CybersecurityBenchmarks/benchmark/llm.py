@@ -28,7 +28,12 @@ from .cache_handler import CacheHandler
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import torch
-from huggingface_hub import login
+
+
+import os
+import time
+from typing import Optional, Sequence, Union
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 
 
@@ -1573,13 +1578,6 @@ class GOOGLEGENAI(LLM):
             "gemini-1.5-flash",
             "gemini-1.5-flash-8b",
         ]
-import os
-import time
-from typing import Optional, Sequence, Union
-
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-# from huggingface_hub import login  # not strictly needed if HF_TOKEN is already active
 
 class LOCALLLM:
     """Access a local HuggingFace causal LM."""
@@ -1638,14 +1636,13 @@ class LOCALLLM:
         print("\nQuerying - LOCALLLM...\n")
         
         if self.model is None or self.tokenizer is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+            raise RuntimeError("Model not loaded -> Load model before querying")
 
         if isinstance(prompt, str):
             prompt = [
                 {"role": "user", "content": prompt},
             ]
 
-        # inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         inputs = self.tokenizer.apply_chat_template(
             prompt,
             tokenize=True,
@@ -1664,7 +1661,7 @@ class LOCALLLM:
             eos_token_id=self.tokenizer.eos_token_id,
         )
         full = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        print(f"\nLOCALLLM - Querying...\nPrompt: {prompt}\n\n\n\n\n\nResponse: {full[len(prompt):].lstrip()}\n")
+        print(f"\n\n\n\n\n\nResponse(THIS IS BEING RETURNED): {full[len(prompt):].lstrip()}\n")
         return full[len(prompt):].lstrip()
 
     def query_with_retries(
@@ -1718,35 +1715,35 @@ class LOCALLLM:
         )
 
 
-    def generate_batch_responses(self, prompts: Sequence[str], max_new_tokens: int = 256):
-        return self._generate_batch_responses_generic(prompts, max_new_tokens)
+    # def generate_batch_responses(self, prompts: Sequence[str], max_new_tokens: int = 256):
+    #     return self._generate_batch_responses_generic(prompts, max_new_tokens)
 
-    def _generate_batch_responses_generic(self, prompts: Sequence[str], max_new_tokens: int):
-        if self.model is None or self.tokenizer is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+    # def _generate_batch_responses_generic(self, prompts: Sequence[str], max_new_tokens: int):
+    #     if self.model is None or self.tokenizer is None:
+    #         raise RuntimeError("Model not loaded. Call load_model() first.")
 
-        print(f"\nDefaultModel ({self.model_name}) generating batch responses...")
+    #     print(f"\nDefaultModel ({self.model_name}) generating batch responses...")
 
-        inputs = self.tokenizer(
-            list(prompts),
-            return_tensors="pt",
-            padding=True,
-            truncation=True
-        ).to(self.model.device)
+    #     inputs = self.tokenizer(
+    #         list(prompts),
+    #         return_tensors="pt",
+    #         padding=True,
+    #         truncation=True
+    #     ).to(self.model.device)
 
-        outputs = self.model.generate(
-            input_ids=inputs["input_ids"],
-            attention_mask=inputs["attention_mask"],
-            max_new_tokens=max_new_tokens,
-            do_sample=True,
-            temperature=1.0,
-            top_p=0.95,
-            pad_token_id=self.tokenizer.pad_token_id,
-            eos_token_id=self.tokenizer.eos_token_id,
-        )
-        print(f"\nDefaultModel ({self.model_name}) batch generation complete.\n")
-        print(f"Outputs: {outputs}\n")
-        return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+    #     outputs = self.model.generate(
+    #         input_ids=inputs["input_ids"],
+    #         attention_mask=inputs["attention_mask"],
+    #         max_new_tokens=max_new_tokens,
+    #         do_sample=True,
+    #         temperature=1.0,
+    #         top_p=0.95,
+    #         pad_token_id=self.tokenizer.pad_token_id,
+    #         eos_token_id=self.tokenizer.eos_token_id,
+    #     )
+    #     print(f"\nDefaultModel ({self.model_name}) batch generation complete.\n")
+    #     print(f"Outputs: {outputs}\n")
+    #     return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
     @override
     def query_with_system_prompt(
