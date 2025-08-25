@@ -1674,14 +1674,7 @@ class LOCALLLM:
         # Remove the entire input portion from the generated output
         response = full[len(input_text):].lstrip()
 
-        # print(
-        #     f"\nLOCALLLM - Query Execution\n"
-        #     f"Prompt provided to model:\n{prompt}\n\n"
-        #     f"Decoded model output:\n{full}\n\n"
-        #     f"Extracted response (excluding inputs):\n{response}\n"
-        # )
-
-        print(f"\n\n\n\n\n\nResponse(THIS IS BEING RETURNED): {response}\n")
+        print(f"\n\n\n\n\n\nResponse(THIS IS BEING RETURNED):\n{response}\n")
         return response
 
     def query_with_retries(
