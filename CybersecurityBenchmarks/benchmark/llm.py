@@ -1622,7 +1622,7 @@ class LOCALLLM:
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             quantization_config=bnb_config,
-            device_map="auto" if self.multi_gpu else None,
+            device_map="cuda",
             torch_dtype=torch_dtype,
         )
 
