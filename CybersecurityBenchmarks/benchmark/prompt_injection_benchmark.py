@@ -74,6 +74,7 @@ class PromptInjectionBenchmark(Benchmark):
                 )
             )
 
+        print("------------------------------1")
         self.response_path.write_text(json.dumps(response_result, indent=4))
 
     @staticmethod
@@ -109,6 +110,7 @@ class PromptInjectionBenchmark(Benchmark):
             )
         )
         if (judge_path := self.judge_response_path) is not None:
+            print("------------------------------2")
             judge_path.write_text(json.dumps(judge_response_result, indent=4))
             self.process_results(judge_path)
 
