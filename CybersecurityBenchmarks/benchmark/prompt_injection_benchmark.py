@@ -216,6 +216,8 @@ class PromptInjectionBenchmark(Benchmark):
                 # fallback: string representation
                 return str(obj)
             safe_output = make_serializable(output_by_model)
+            print("sage_output:\n")
+            print(safe_output)
             stat_path.write_text(json.dumps(safe_output, indent=4))
 
 
