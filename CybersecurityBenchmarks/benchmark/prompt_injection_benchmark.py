@@ -205,7 +205,18 @@ class PromptInjectionBenchmark(Benchmark):
             for category, model_stats in output_data.items():
                 for model, stats in model_stats.items():
                     output_by_model[model][category] = stats
-            stat_path.write_text(json.dumps(output_by_model, indent=4))
+
+            def make_serializable(obj):
+                if isinstance(obj, (str, int, float, bool)) or obj is None:
+                    return obj
+                if isinstance(obj, dict):
+                    return {k: make_serializable(v) for k, v in obj.items()}
+                if isinstance(obj, list):
+                    return [make_serializable(v) for v in obj]
+                # fallback: string representation
+                return str(obj)
+            safe_output = make_serializable(output_by_model)
+            stat_path.write_text(json.dumps(safe_output, indent=4))
 
 
 def process_judge_prompt(

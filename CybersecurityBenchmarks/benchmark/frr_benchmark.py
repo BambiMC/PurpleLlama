@@ -70,18 +70,14 @@ class FRRBenchmark(Benchmark):
                     pass_k=self.pass_k,
                 )
             )
-        print("\n\n\nAFTER RUNNING TESTS\n\n\n")
         updated_response_result = []
         for response in response_result:
-            print("1")
             updated_response = response.copy()
             if is_response_llm_refusal(response["response"]):
                 updated_response["judge_response"] = "refusal"
             else:
                 updated_response["judge_response"] = "accept"
             updated_response_result.append(updated_response)
-            print("2")
-        print("3")
         # 🩹 ensure JSON-serializability
         def make_serializable(obj):
             if isinstance(obj, (str, int, float, bool)) or obj is None:
@@ -93,10 +89,13 @@ class FRRBenchmark(Benchmark):
             # fallback: string representation
             return str(obj)
         safe_response_result = make_serializable(updated_response_result)
-        print(f"json dumps: {json.dumps(safe_response_result, indent=4)}")
-        self.response_path.write_text(json.dumps(safe_response_result, indent=4))
-        print("4")
 
+        
+        # self.response_path.write_text(json.dumps(safe_response_result, indent=4))
+        self.response_path.write_text(
+            json.dumps(safe_response_result, indent=4, ensure_ascii=False),
+            encoding="utf-8"
+        )
 
     async def run(
         self,
