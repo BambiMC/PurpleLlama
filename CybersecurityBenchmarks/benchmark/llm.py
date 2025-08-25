@@ -1660,9 +1660,29 @@ class LOCALLLM:
             pad_token_id=self.tokenizer.pad_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
         )
+
+
+        # Decode the generated sequence fully
         full = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        print(f"\n\n\n\n\n\nResponse(THIS IS BEING RETURNED): {full[len(prompt):].lstrip()}\n")
-        return full[len(prompt):].lstrip()
+
+        # The inputs are tokenized, so their string representation can be regenerated
+        # to identify and strip them out from the decoded output
+        input_text = self.tokenizer.decode(
+            inputs["input_ids"][0], skip_special_tokens=True
+        )
+
+        # Remove the entire input portion from the generated output
+        response = full[len(input_text):].lstrip()
+
+        # print(
+        #     f"\nLOCALLLM - Query Execution\n"
+        #     f"Prompt provided to model:\n{prompt}\n\n"
+        #     f"Decoded model output:\n{full}\n\n"
+        #     f"Extracted response (excluding inputs):\n{response}\n"
+        # )
+
+        print(f"\n\n\n\n\n\nResponse(THIS IS BEING RETURNED): {response}\n")
+        return response
 
     def query_with_retries(
         self,
