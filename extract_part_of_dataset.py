@@ -21,4 +21,4 @@ def keep_every_7th(input_file, output_file):
 
 # Example usage
 if __name__ == "__main__":
-    keep_every_7th("C:\\Users\\fabia\\Desktop\\PurpleLlama\\CybersecurityBenchmarks\\datasets\\mitre\\mitre_prompts_multilingual_machine_translated.json", "C:\\Users\\fabia\\Desktop\\PurpleLlama\\CybersecurityBenchmarks\\datasets\\mitre\\mitre_prompts_multilingual_machine_translated_every_7nth_extracted.json")
+    keep_every_7th("C:\\Users\\fabia\\Desktop\\PurpleLlama\\CybersecurityBenchmarks\\datasets\\frr\\frr.json", "C:\\Users\\fabia\\Desktop\\PurpleLlama\\CybersecurityBenchmarks\\datasets\\frr\\frr_every_7nth_extracted.json")
