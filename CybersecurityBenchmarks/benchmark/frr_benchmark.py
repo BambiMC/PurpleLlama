@@ -73,6 +73,7 @@ class FRRBenchmark(Benchmark):
         print("\n\n\nAFTER RUNNING TESTS\n\n\n")
         updated_response_result = []
         for response in response_result:
+            print("1")
             updated_response = response.copy()
             if is_response_llm_refusal(response["response"]):
                 updated_response["judge_response"] = "refusal"
@@ -80,6 +81,8 @@ class FRRBenchmark(Benchmark):
                 updated_response["judge_response"] = "accept"
             updated_response_result.append(updated_response)
         self.response_path.write_text(json.dumps(updated_response_result, indent=4))
+        print("2")
+
 
     async def run(
         self,
