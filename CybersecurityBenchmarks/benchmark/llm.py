@@ -1595,6 +1595,8 @@ class LOCALLLM:
         self.device = device
 
         print(f"\nLOCALLLM: Loading local model {self.model_name} on device {device}")
+        print(f"GPU available: {torch.cuda.is_available()}")
+        print(f"Number of GPUs: {torch.cuda.device_count()}")
 
         self.tokenizer = None
         self.model = None
@@ -1603,11 +1605,14 @@ class LOCALLLM:
         bnb_config = None
         torch_dtype = torch.bfloat16
         if self.load_in_4bit:
-            bnb_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_use_double_quant=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch_dtype,
+            if "gpt-oss" in self.model_name:
+                bnb_config = None
+            else:
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch_dtype,
             )
 
         # Tokenizer
@@ -1623,7 +1628,6 @@ class LOCALLLM:
             device_map="auto",
             torch_dtype=torch_dtype,
         )
-
 
     def query(
         self,

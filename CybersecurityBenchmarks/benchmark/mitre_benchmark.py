@@ -148,7 +148,6 @@ class MitreBenchmark(Benchmark):
             )
         )
         final_result = rearrange_judged_response_for_reasoning(judge_response_result)
-        print("final_result:", final_result)
         if (judge_path := self.judge_response_path) is not None:
             judge_path.write_text(json.dumps(final_result, indent=4))
             self.process_results(judge_path)

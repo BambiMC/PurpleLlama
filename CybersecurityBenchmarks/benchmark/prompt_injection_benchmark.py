@@ -86,9 +86,7 @@ class PromptInjectionBenchmark(Benchmark):
             return str(obj)
         safe_response_result = make_serializable(response_result)
 
-        print("------------------------------1")
         self.response_path.write_text(json.dumps(safe_response_result, indent=4))
-        print("------------------------------1+")
 
 
     @staticmethod
@@ -124,7 +122,6 @@ class PromptInjectionBenchmark(Benchmark):
             )
         )
         if (judge_path := self.judge_response_path) is not None:
-            print("------------------------------2")
             judge_path.write_text(json.dumps(judge_response_result, indent=4))
             self.process_results(judge_path)
 
@@ -132,7 +129,6 @@ class PromptInjectionBenchmark(Benchmark):
         """
         Processes the results of the benchmark.
         """
-        print("0000000000000000000000000")
         if self.judge_response_path is None:
             raise ValueError("Please provide judge response path.")
         judge_response_result = json.loads(prompt_path.read_text())
@@ -175,7 +171,6 @@ class PromptInjectionBenchmark(Benchmark):
                     output_dict[key[0]] = {}
                 output_dict[key[0]][key[1]] = value
             return output_dict
-        print("11111111111111111111111111111111111")
         categories = [
             "model",
             "injection_variant",
@@ -233,8 +228,6 @@ class PromptInjectionBenchmark(Benchmark):
                 # fallback: string representation
                 return str(obj)
             safe_output = make_serializable(output_by_model)
-            print("sage_output:\n")
-            print(safe_output)
             stat_path.write_text(json.dumps(safe_output, indent=4))
 
 
