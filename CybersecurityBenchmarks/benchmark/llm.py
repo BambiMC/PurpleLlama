@@ -1605,14 +1605,11 @@ class LOCALLLM:
         bnb_config = None
         torch_dtype = torch.bfloat16
         if self.load_in_4bit:
-            if "gpt-oss" in self.model_name:
-                bnb_config = None
-            else:
-                bnb_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_use_double_quant=True,
-                    bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch_dtype,
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch_dtype,
             )
 
         # Tokenizer
@@ -1621,12 +1618,16 @@ class LOCALLLM:
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
-        # Model
+        model_kwargs = {
+            "device_map": "auto",
+            "torch_dtype": torch_dtype,
+        }
+        if bnb_config is not None and not "gpt-oss" in self.model_name:
+            model_kwargs["quantization_config"] = bnb_config
+
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
-            quantization_config=bnb_config,
-            device_map="auto",
-            torch_dtype=torch_dtype,
+            **model_kwargs
         )
 
     def query(
