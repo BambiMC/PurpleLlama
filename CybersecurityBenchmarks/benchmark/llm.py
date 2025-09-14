@@ -577,15 +577,18 @@ class OPENAI(LLM):
         """
         Sends a single prompt to the model and returns the response text.
         """
+
         try:
+            print(f"Query:\n{prompt}")
             response = self.client.with_options(timeout=self.timeout).responses.create(
                 model=self.model,
-                instructions="",  # You can add a default system prompt here if needed
+                # instructions="",  # You can add a default system prompt here if needed
                 input=prompt,
                 # temperature=temperature,
                 # top_p=top_p,
                 # max_output_tokens can be set if required
             )
+            print(f"Response:\n{response.output_text}")
             return response.output_text
         except Exception as e:
             print(f"OpenAI request failed: {e}")
@@ -604,6 +607,7 @@ class OPENAI(LLM):
         Sends a single prompt to the model with a system prompt.
         """
         try:
+            print(f"Query:\n{prompt}")
             response = self.client.with_options(timeout=self.timeout).responses.create(
                 model=self.model,
                 instructions=system_prompt,
@@ -612,6 +616,7 @@ class OPENAI(LLM):
                 # top_p=top_p,
                 # max_output_tokens can be set if needed
             )
+            print(f"Response:\n{response.output_text}")
             return response.output_text
         except Exception as e:
             print(f"OpenAI request failed: {e}")
@@ -630,6 +635,7 @@ class OPENAI(LLM):
     ) -> str:
         for attempt in range(1, max_retries + 1):
             try:
+                print(f"Query:\n{prompt}")
                 response = self.client.with_options(timeout=self.timeout).responses.create(
                     model=self.model,
                     instructions="",
@@ -638,6 +644,7 @@ class OPENAI(LLM):
                     # top_p=top_p,
                     # max_output_tokens=max_new_tokens,
                 )
+                print(f"Response:\n{response.output_text}")
                 return response.output_text
             except Exception as e:
                 print(f"Attempt {attempt} failed: {e}")
@@ -659,6 +666,7 @@ class OPENAI(LLM):
     ) -> str:
         for attempt in range(1, max_retries + 1):
             try:
+                print(f"Query:\n{prompt}")
                 response = self.client.with_options(timeout=self.timeout).responses.create(
                     model=self.model,
                     instructions=system_prompt,
@@ -667,6 +675,7 @@ class OPENAI(LLM):
                     # top_p=top_p,
                     # max_output_tokens=max_new_tokens,
                 )
+                print(f"Response:\n{response.output_text}")
                 return response.output_text
             except Exception as e:
                 print(f"Attempt {attempt} failed: {e}")
