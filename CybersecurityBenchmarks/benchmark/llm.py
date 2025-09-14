@@ -534,6 +534,8 @@ def create(
         return ANTHROPIC(config)
     if provider == "GOOGLEGENAI":
         return GOOGLEGENAI(config)
+    if provider == "DEEPSEEK":
+        return DEEPSEEK(config)
     if provider == "LOCALLLM":
         return LOCALLLM(name, True, True, "cuda")
 
@@ -1578,6 +1580,118 @@ class GOOGLEGENAI(LLM):
             "gemini-1.5-flash",
             "gemini-1.5-flash-8b",
         ]
+
+class DEEPSEEK:
+    """Access DeepSeek Cloud API as a drop-in LLM class."""
+
+    def __init__(
+        self,
+        model_name: str,
+        timeout: float = 900.0
+    ):
+        self.model_name = model_name
+        self.timeout = timeout
+        self.client = openai.OpenAI(
+            api_key=os.environ.get("DEEPSEEK_TOKEN"),
+            base_url="https://api.deepseek.com"
+        )
+        print(f"\nDeepseek: Using model {self.model_name} with timeout {self.timeout}s")
+
+    def query(
+        self,
+        prompt: Union[str, List[dict]],
+        guided_decode_json_schema: Optional[str] = None,  # accepted for API compatibility
+        temperature: float = DEFAULT_TEMPERATURE,
+        top_p: float = DEFAULT_TOP_P,
+        max_new_tokens: int = DEFAULT_MAX_TOKENS,
+    ) -> str:
+        print("\nQuerying - Deepseek...\n")
+
+        if isinstance(prompt, str):
+            messages = [{"role": "user", "content": prompt}]
+        elif isinstance(prompt, list):
+            messages = prompt
+        else:
+            raise ValueError("prompt must be str or list of dicts")
+
+        try:
+            response = self.client.with_options(timeout=self.timeout).chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                max_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p
+            )
+
+            msg = response.choices[0].message
+            reasoning_content = getattr(msg, "reasoning_content", None)
+            final_content = msg.content
+
+            combined_output = ""
+            if reasoning_content:
+                combined_output += f"[Reasoning]\n{reasoning_content}\n\n"
+            combined_output += f"[Answer]\n{final_content}"
+
+            return combined_output
+
+        except Exception as e:
+            print(f"DeepSeek request failed: {e}")
+            return ""
+
+    def query_with_retries(
+        self,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = DEFAULT_TEMPERATURE,
+        top_p: float = DEFAULT_TOP_P,
+        max_new_tokens: int = DEFAULT_MAX_TOKENS,
+        max_retries: int = 3,
+        backoff: float = 1.5,
+    ) -> str:
+        print("\nQuerying With Retries - Deepseek...")
+        import time
+
+        for attempt in range(max_retries):
+            response = self.query(
+                prompt=prompt,
+                guided_decode_json_schema=guided_decode_json_schema,
+                temperature=temperature,
+                top_p=top_p,
+                max_new_tokens=max_new_tokens,
+            )
+            if response:
+                return response
+            sleep_time = backoff * (2 ** attempt)
+            print(f"Retry {attempt + 1}/{max_retries}, sleeping {sleep_time}s before retrying...")
+            time.sleep(sleep_time)
+
+        print("All retries failed.")
+        return ""
+
+    def query_with_system_prompt_with_retries(
+        self,
+        system_prompt: str,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = DEFAULT_TEMPERATURE,
+        top_p: float = DEFAULT_TOP_P,
+        max_new_tokens: int = DEFAULT_MAX_TOKENS,
+        max_retries: int = 3,
+        backoff: float = 1.5,
+    ) -> str:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+        return self.query_with_retries(
+            prompt=messages,
+            guided_decode_json_schema=guided_decode_json_schema,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+            max_retries=max_retries,
+            backoff=backoff
+        )
 
 class LOCALLLM:
     """Access a local HuggingFace causal LM."""
