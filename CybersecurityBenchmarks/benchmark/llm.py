@@ -1312,7 +1312,13 @@ class DEEPSEEK:
         if isinstance(prompt, str):
             messages = [{"role": "user", "content": prompt}]
         elif isinstance(prompt, list):
-            messages = prompt
+            # Ensure each message is serializable
+            messages = []
+            for msg in prompt:
+                messages.append({
+                    "role": str(msg.get("role")),
+                    "content": str(msg.get("content"))
+                })
         else:
             raise ValueError("prompt must be str or list of dicts")
 
