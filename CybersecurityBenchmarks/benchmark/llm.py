@@ -1159,10 +1159,7 @@ class GOOGLEGENAI(LLM):
 
     def __init__(self, config: LLMConfig, timeout: float = 900.0, max_retries: int = 5) -> None:
         self._reasoning_models = [
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
-            "gemini-1.0-pro",
-            "gemini-1.0-ultra"
+            "gemini-2.5-flash", "gemini-2.5-pro"
         ]
         super().__init__(config)
         self.client = genai.Client()
@@ -1171,7 +1168,7 @@ class GOOGLEGENAI(LLM):
 
     @override
     def valid_models(self) -> list[str]:
-        return ["gemini-pro", "gemini-ultra"] + self._reasoning_models
+        return ["gemini-2.0-flash"] + self._reasoning_models
 
     @override
     def chat(self, prompt_with_history: list[str], guided_decode_json_schema: str = None,
