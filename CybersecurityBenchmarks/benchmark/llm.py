@@ -583,7 +583,7 @@ class OPENAI(LLM):
                 instructions="",  # You can add a default system prompt here if needed
                 input=prompt,
                 # temperature=temperature,
-                top_p=top_p,
+                # top_p=top_p,
                 # max_output_tokens can be set if required
             )
             return response.output_text
@@ -609,7 +609,7 @@ class OPENAI(LLM):
                 instructions=system_prompt,
                 input=prompt,
                 # temperature=temperature,
-                top_p=top_p,
+                # top_p=top_p,
                 # max_output_tokens can be set if needed
             )
             return response.output_text
@@ -635,7 +635,7 @@ class OPENAI(LLM):
                     instructions="",
                     input=prompt,
                     # temperature=temperature,
-                    top_p=top_p,
+                    # top_p=top_p,
                     # max_output_tokens=max_new_tokens,
                 )
                 return response.output_text
@@ -664,7 +664,7 @@ class OPENAI(LLM):
                     instructions=system_prompt,
                     input=prompt,
                     # temperature=temperature,
-                    top_p=top_p,
+                    # top_p=top_p,
                     # max_output_tokens=max_new_tokens,
                 )
                 return response.output_text
