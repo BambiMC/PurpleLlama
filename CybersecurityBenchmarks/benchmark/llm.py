@@ -1298,7 +1298,7 @@ class DEEPSEEK(LLM):
     @override
     def valid_models(self) -> list[str]:
         return ["deepseek-chat", "deepseek-reasoning"]
-
+    @override
     def query(
         self,
         prompt: Union[str, List[dict]],
@@ -1346,6 +1346,7 @@ class DEEPSEEK(LLM):
             print(f"DeepSeek request failed: {e}")
             return ""
 
+    @override
     def query_with_retries(
         self,
         prompt: str,
@@ -1376,6 +1377,7 @@ class DEEPSEEK(LLM):
         print("All retries failed.")
         return ""
 
+    @override
     def query_with_system_prompt_with_retries(
         self,
         system_prompt: str,
