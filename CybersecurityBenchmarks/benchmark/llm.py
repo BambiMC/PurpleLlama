@@ -1283,12 +1283,11 @@ class GOOGLEGENAI(LLM):
         return ""
 
 
-class DEEPSEEK:
+class DEEPSEEK(LLM):
     """Access DeepSeek Cloud API as a drop-in LLM class."""
 
     def __init__(self, config: LLMConfig, timeout: float = 900.0, max_retries: int = 5) -> None:
-        super().__init__(config)
-        # self.model_name = model_name
+        super().__init__(config)   # now calls LLM.__init__(config)
         self.timeout = timeout
         self.client = openai.OpenAI(
             api_key=os.environ.get("DEEPSEEK_TOKEN"),
