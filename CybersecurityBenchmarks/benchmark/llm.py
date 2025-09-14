@@ -543,139 +543,53 @@ def create(
 
 
 class OPENAI(LLM):
-    """Accessing OPENAI"""
+    """Accessing OpenAI, updated with CloudModel-style logic"""
 
-    def __init__(self, config: LLMConfig) -> None:
-        self._reasoning_models = ["o1", "o1-mini", "o3", "o3-mini", "o4-mini", "gpt-5-nano-2025-08-07", "gpt-4.1-nano-2025-04-14"]
+    def __init__(self, config: LLMConfig, timeout: float = 900.0) -> None:
+        self._reasoning_models = [
+            "o1", "o1-mini", "o3", "o3-mini", "o4-mini",
+            "gpt-5-nano", "gpt-4.1-nano"
+        ]
         super().__init__(config)
-        self.client = openai.OpenAI(api_key=self.api_key)  # noqa
+        self.client = openai.OpenAI()
+        self.timeout = timeout
 
     @override
-    def chat(
-        self,
-        prompt_with_history: List[str],
-        guided_decode_json_schema: Optional[str] = None,
-        temperature: float = DEFAULT_TEMPERATURE,
-        top_p: float = DEFAULT_TOP_P,
-    ) -> str:
-        messages = []
-        for i in range(len(prompt_with_history)):
-            if i % 2 == 0:
-                messages.append({"role": "user", "content": prompt_with_history[i]})
-            else:
-                messages.append(
-                    {"role": "assistant", "content": prompt_with_history[i]}
-                )
-
-        level = logging.getLogger().level
-        logging.getLogger().setLevel(logging.WARNING)
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_tokens=DEFAULT_MAX_TOKENS
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            max_completion_tokens=DEFAULT_MAX_TOKENS
-            if (self.model in self._reasoning_models)
-            else NOT_GIVEN,
-            temperature=temperature
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
-            response_format=(
-                {"type": "json_object"}
-                if guided_decode_json_schema is not None
-                else None
-            ),
-        )
-        logging.getLogger().setLevel(level)
-        return response.choices[0].message.content
+    def valid_models(self) -> list[str]:
+        return ["gpt-3.5-turbo", "gpt-4", "gpt-4o", "gpt-4-turbo"] + self._reasoning_models
 
     @override
-    def chat_with_system_prompt(
-        self,
-        system_prompt: str,
-        prompt_with_history: List[str],
-        guided_decode_json_schema: Optional[str] = None,
-        temperature: float = DEFAULT_TEMPERATURE,
-        top_p: float = DEFAULT_TOP_P,
-    ) -> str:
-        messages = [{"role": "system", "content": system_prompt}]
-        for i in range(len(prompt_with_history)):
-            if i % 2 == 0:
-                messages.append({"role": "user", "content": prompt_with_history[i]})
-            else:
-                messages.append(
-                    {"role": "assistant", "content": prompt_with_history[i]}
-                )
-
-        level = logging.getLogger().level
-        logging.getLogger().setLevel(logging.WARNING)
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_tokens=DEFAULT_MAX_TOKENS
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            max_completion_tokens=DEFAULT_MAX_TOKENS
-            if (self.model in self._reasoning_models)
-            else NOT_GIVEN,
-            temperature=temperature
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
-            response_format=(
-                {"type": "json_object"}
-                if guided_decode_json_schema is not None
-                else None
-            ),
-        )
-        logging.getLogger().setLevel(level)
-        return response.choices[0].message.content
+    def chat(self, prompt_with_history: list[str], guided_decode_json_schema: str = None,
+             temperature: float = DEFAULT_TEMPERATURE, top_p: float = DEFAULT_TOP_P) -> str:
+        raise NotImplementedError("Not implemented yet for OPENAI.")
 
     @override
-    def query(
-        self,
-        prompt: str,
-        guided_decode_json_schema: Optional[str] = None,
-        temperature: float = DEFAULT_TEMPERATURE,
-        top_p: float = DEFAULT_TOP_P,
-    ) -> str:
-        # Best-level effort to suppress openai log-spew.
-        # Likely not work well in multi-threaded environment.
-        level = logging.getLogger().level
-        logging.getLogger().setLevel(logging.WARNING)
-        if guided_decode_json_schema is not None:
-            message_list = [
-                {
-                    "role": "system",
-                    "content": f"""You are a helpful assistant. Always format your response in json format following this schema: {guided_decode_json_schema} """,
-                }
-            ]
-        else:
-            message_list = []
-        message_list.append({"role": "user", "content": prompt})
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=message_list,
-            max_tokens=DEFAULT_MAX_TOKENS
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            max_completion_tokens=DEFAULT_MAX_TOKENS
-            if (self.model in self._reasoning_models)
-            else NOT_GIVEN,
-            temperature=temperature
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
-            response_format=(
-                {"type": "json_object"}
-                if guided_decode_json_schema is not None
-                else None
-            ),
-        )
-        logging.getLogger().setLevel(level)
-        return response.choices[0].message.content
+    def chat_with_system_prompt(self, system_prompt: str, prompt_with_history: list[str],
+                                guided_decode_json_schema: str = None,
+                                temperature: float = DEFAULT_TEMPERATURE,
+                                top_p: float = DEFAULT_TOP_P) -> str:
+        raise NotImplementedError("Not implemented yet for OPENAI.")
+
+
+    @override
+    def query(self, prompt: str, guided_decode_json_schema: str = None,
+              temperature: float = DEFAULT_TEMPERATURE, top_p: float = DEFAULT_TOP_P) -> str:
+        """
+        Sends a single prompt to the model and returns the response text.
+        """
+        try:
+            response = self.client.with_options(timeout=self.timeout).responses.create(
+                model=self.model,
+                instructions="",  # You can add a default system prompt here if needed
+                input=prompt,
+                temperature=temperature,
+                top_p=top_p,
+                # max_output_tokens can be set if required
+            )
+            return response.output_text
+        except Exception as e:
+            print(f"OpenAI request failed: {e}")
+            return ""
 
     @override
     def query_with_system_prompt(
@@ -686,41 +600,79 @@ class OPENAI(LLM):
         temperature: float = DEFAULT_TEMPERATURE,
         top_p: float = DEFAULT_TOP_P,
     ) -> str:
-        level = logging.getLogger().level
-        logging.getLogger().setLevel(logging.WARNING)
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=DEFAULT_MAX_TOKENS
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            max_completion_tokens=DEFAULT_MAX_TOKENS
-            if (self.model in self._reasoning_models)
-            else NOT_GIVEN,
-            temperature=temperature
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
-            response_format=(
-                {"type": "json_object"}
-                if guided_decode_json_schema is not None
-                else None
-            ),
-        )
-        logging.getLogger().setLevel(level)
-        return response.choices[0].message.content
+        """
+        Sends a single prompt to the model with a system prompt.
+        """
+        try:
+            response = self.client.with_options(timeout=self.timeout).responses.create(
+                model=self.model,
+                instructions=system_prompt,
+                input=prompt,
+                temperature=temperature,
+                top_p=top_p,
+                # max_output_tokens can be set if needed
+            )
+            return response.output_text
+        except Exception as e:
+            print(f"OpenAI request failed: {e}")
+            return ""
 
     @override
-    def valid_models(self) -> list[str]:
-        return [
-            "gpt-3.5-turbo",
-            "gpt-4",
-            "gpt-4o",
-            "gpt-4-turbo",
-        ] + self._reasoning_models
+    def query_with_retries(
+        self,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = DEFAULT_TEMPERATURE,
+        top_p: float = DEFAULT_TOP_P,
+        max_new_tokens: int = DEFAULT_MAX_TOKENS,
+        max_retries: int = 3,
+        backoff: float = 1.5,
+    ) -> str:
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = self.client.with_options(timeout=self.timeout).responses.create(
+                    model=self.model,
+                    instructions="",
+                    input=prompt,
+                    temperature=temperature,
+                    top_p=top_p,
+                    # max_output_tokens=max_new_tokens,
+                )
+                return response.output_text
+            except Exception as e:
+                print(f"Attempt {attempt} failed: {e}")
+                if attempt < max_retries:
+                    time.sleep(backoff ** attempt)
+        return ""
+
+    @override
+    def query_with_system_prompt_with_retries(
+        self,
+        system_prompt: str,
+        prompt: str,
+        guided_decode_json_schema: Optional[str] = None,
+        temperature: float = DEFAULT_TEMPERATURE,
+        top_p: float = DEFAULT_TOP_P,
+        max_new_tokens: int = DEFAULT_MAX_TOKENS,
+        max_retries: int = 3,
+        backoff: float = 1.5,
+    ) -> str:
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = self.client.with_options(timeout=self.timeout).responses.create(
+                    model=self.model,
+                    instructions=system_prompt,
+                    input=prompt,
+                    temperature=temperature,
+                    top_p=top_p,
+                    # max_output_tokens=max_new_tokens,
+                )
+                return response.output_text
+            except Exception as e:
+                print(f"Attempt {attempt} failed: {e}")
+                if attempt < max_retries:
+                    time.sleep(backoff ** attempt)
+        return ""
 
     @override
     def query_with_system_prompt_and_image(
@@ -732,39 +684,7 @@ class OPENAI(LLM):
         temperature: float = DEFAULT_TEMPERATURE,
         top_p: float = DEFAULT_TOP_P,
     ) -> str:
-        image = image_to_b64(image_path)
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/png;base64, {image}"},
-                        },
-                    ],
-                },
-            ],
-            max_tokens=DEFAULT_MAX_TOKENS
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            max_completion_tokens=DEFAULT_MAX_TOKENS
-            if (self.model in self._reasoning_models)
-            else NOT_GIVEN,
-            temperature=temperature
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
-            response_format=(
-                {"type": "json_object"}
-                if guided_decode_json_schema is not None
-                else None
-            ),
-        )
-        return response.choices[0].message.content
+        raise NotImplementedError("Not implemented yet for OPENAI.")
 
     @override
     def query_multimodal(
@@ -777,58 +697,8 @@ class OPENAI(LLM):
         temperature: float = DEFAULT_TEMPERATURE,
         top_p: float = DEFAULT_TOP_P,
     ) -> str:
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+        raise NotImplementedError("Not implemented yet for OPENAI.")
 
-        user_message_content = []
-        if text_prompt:
-            user_message_content.append({"type": "text", "text": text_prompt})
-
-        if image_paths:
-            for image_path in image_paths:
-                image_data = image_to_b64(image_path)
-                user_message_content.append(
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64, {image_data}"},
-                    }
-                )
-
-        if audio_paths:
-            for audio_path in audio_paths:
-                user_message_content.append(
-                    {
-                        "type": "input_audio",
-                        "input_audio": {
-                            "data": audio_to_b64(str(audio_path)),
-                            "format": "wav",
-                        },
-                    }
-                )
-
-        messages.append(
-            {
-                "role": "user",
-                "content": user_message_content,
-            }
-        )
-
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_tokens=DEFAULT_MAX_TOKENS
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            max_completion_tokens=DEFAULT_MAX_TOKENS
-            if (self.model in self._reasoning_models)
-            else NOT_GIVEN,
-            temperature=temperature
-            if (self.model not in self._reasoning_models)
-            else NOT_GIVEN,
-            top_p=top_p if (self.model not in self._reasoning_models) else NOT_GIVEN,
-        )
-        return response.choices[0].message.content
 
 
 class TOGETHER(LLM):
