@@ -1286,18 +1286,19 @@ class GOOGLEGENAI(LLM):
 class DEEPSEEK:
     """Access DeepSeek Cloud API as a drop-in LLM class."""
 
-    def __init__(
-        self,
-        model_name: str,
-        timeout: float = 900.0
-    ):
-        self.model_name = model_name
+    def __init__(self, config: LLMConfig, timeout: float = 900.0, max_retries: int = 5) -> None:
+        super().__init__(config)
+        # self.model_name = model_name
         self.timeout = timeout
         self.client = openai.OpenAI(
             api_key=os.environ.get("DEEPSEEK_TOKEN"),
             base_url="https://api.deepseek.com"
         )
         print(f"\nDeepseek: Using model {self.model_name} with timeout {self.timeout}s")
+
+    @override
+    def valid_models(self) -> list[str]:
+        return ["deepseek-chat", "deepseek-reasoning"]
 
     def query(
         self,
