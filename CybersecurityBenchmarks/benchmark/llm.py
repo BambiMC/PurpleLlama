@@ -1298,6 +1298,19 @@ class DEEPSEEK(LLM):
     @override
     def valid_models(self) -> list[str]:
         return ["deepseek-chat", "deepseek-reasoning"]
+
+    @override
+    def chat(self, prompt_with_history: list[str], guided_decode_json_schema: str = None,
+             temperature: float = DEFAULT_TEMPERATURE, top_p: float = DEFAULT_TOP_P) -> str:
+        raise NotImplementedError("Not implemented yet for DEEPSEEK.")
+
+    @override
+    def chat_with_system_prompt(self, system_prompt: str, prompt_with_history: list[str],
+                                guided_decode_json_schema: str = None,
+                                temperature: float = DEFAULT_TEMPERATURE,
+                                top_p: float = DEFAULT_TOP_P) -> str:
+        raise NotImplementedError("Not implemented yet for DEEPSEEK.")
+
     @override
     def query(
         self,
