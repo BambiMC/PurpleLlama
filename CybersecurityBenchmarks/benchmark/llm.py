@@ -1293,7 +1293,7 @@ class DEEPSEEK(LLM):
             api_key=os.environ.get("DEEPSEEK_TOKEN"),
             base_url="https://api.deepseek.com"
         )
-        print(f"\nDeepseek: Using model {self.model_name} with timeout {self.timeout}s")
+        print(f"\nDeepseek: Using model {self.model} with timeout {self.timeout}s")
 
     @override
     def valid_models(self) -> list[str]:
@@ -1337,7 +1337,7 @@ class DEEPSEEK(LLM):
 
         try:
             response = self.client.with_options(timeout=self.timeout).chat.completions.create(
-                model=self.model_name,
+                model=self.model,
                 messages=messages,
                 max_tokens=max_new_tokens,
                 temperature=temperature,
@@ -1362,7 +1362,7 @@ class DEEPSEEK(LLM):
     @override
     def query_with_retries(
         self,
-        prompt: str,
+        prompt: Union[str, List[dict]],
         guided_decode_json_schema: Optional[str] = None,
         temperature: float = DEFAULT_TEMPERATURE,
         top_p: float = DEFAULT_TOP_P,
@@ -1413,8 +1413,9 @@ class DEEPSEEK(LLM):
             top_p=top_p,
             max_new_tokens=max_new_tokens,
             max_retries=max_retries,
-            backoff=backoff
+            backoff=backoff,
         )
+
 
 class LOCALLLM:
     """Access a local HuggingFace causal LM."""
